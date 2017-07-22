@@ -21,13 +21,11 @@
 #define MQTT "mqtt"
 
 String devName = "EMC";
-int update = 30;
-bool enable = false;
+int relayNum = 2; // Relay number
+int defcount = 1; // In minute
 
-Relay relay1(RELAY1, "relay1", 0);
-Relay relay2(RELAY2, "relay2", 0);
-
-const int arrsize = 2;
+Relay relay1(RELAY1, "relay1", defcount);
+Relay relay2(RELAY2, "relay2", defcount);
 
 void readMqttCmd() {
   CiaoData data = Ciao.read(MQTT, cmdTopic);
@@ -82,16 +80,11 @@ boolean IsNumeric(String str) {
 }
 
 void triggerRelay(int num, String action) {
-  if (num > arrsize || num <= 0) {
+  if (num > relayNum || num <= 0) {
     debugPort.println("relay number is out of range");
     return;
   }
 
-  /*Relay relay = array[num - 1];
-  if (action != "status") {
-    relay.setByCmd(action);
-  }
-  sendMqttMsg(relay);*/
   if (num == 1) {
     relay1.setByCmd(action);
     sendMqttMsg(relay1);
@@ -99,23 +92,21 @@ void triggerRelay(int num, String action) {
     relay2.setByCmd(action);
     sendMqttMsg(relay2);
   }
-
 }
-
 
 void sendMqttMsg(Relay relay) {
   String msg = devName + "," + relay.getDevice() + ",";
-  if (relay.getStatus()) msg += "ON";
+  if (relay.getStatus()) msg = msg + "ON," + relay.getCount() + "s";
   else msg += "OFF";
   Ciao.write(MQTT, responseTopic, msg);
 }
 
 check() {
-  if (relay1.check(update)) {
+  if (relay1.check()) {
     debugPort.println("Disable " + relay1.getDevice());
     sendMqttMsg(relay1);
   }
-  if (relay2.check(update)) {
+  if (relay2.check()) {
     debugPort.println("Disable " + relay2.getDevice());
     sendMqttMsg(relay2);
   }
@@ -154,8 +145,8 @@ void setup() {
   relay2.setDebugStream(&debugPort);
   pinMode(RELAY1, OUTPUT);
   pinMode(RELAY2, OUTPUT);
-  relay1.set(OFF);
-  relay2.set(OFF);
+  relay1.set(OFF, 0);
+  relay2.set(OFF, 0);
 
   Ciao.begin();
   Ciao.write(MQTT, testTopic, devName + ", " + version);

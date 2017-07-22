@@ -1,23 +1,32 @@
 #include "relay.h"
 
-Relay::Relay(byte pin, String name, int count):pin(pin), name(name),
-        count(count), status(false) {
+Relay::Relay(byte pin, String name, int defcount):pin(pin), name(name),
+        defcount(defcount), count(0), status(false) {
 }
 
-void Relay::setByCmd(String action) {
+void Relay::setByCmd(String msg) {
+  int idx = msg.indexOf(',');
+  int count = this -> defcount * 60;
+  String action = msg;
+  if (idx > 0) {
+    action = action.substring(0, idx);
+    count = msg.substring(idx + 1).toInt() * 60;
+  }
+
   if (action == "ON") {
-    this -> set(ON);
+    this -> set(ON, count);
   } else if (action == "OFF") {
-    this -> set(OFF);
+    this -> set(OFF, 0);
   } else {
     this -> log(String("Unknown cmd ") + String(action));
   }
 }
 
-void Relay::set(bool action) {
+void Relay::set(bool action, int count) {
   // ON  -> LOW  (false)
   // OFF -> HIGH (true)
   digitalWrite(this -> pin, action);
+  this -> count = count;
   this -> setStatus(action);
 };
 
@@ -35,13 +44,17 @@ String Relay::getDevice() {
   return this -> name;
 }
 
-bool Relay::check(int update) {
-  if (this -> status) (this -> count)++;
-  if (this -> count == update) {
-    this -> set(OFF);
-    this -> count = 0;
-    this -> status = false;
-    return true;
+int Relay::getCount() {
+  return this -> count;
+}
+
+bool Relay::check() {
+  if (this -> status && this -> count != 0) {
+    --(this -> count);
+    if (this -> count == 0) {
+      this -> set(OFF, 0);
+      return true;
+    }
   }
   return false;
 }

@@ -10,17 +10,19 @@
 
 class Relay : public device {
 public:
-  Relay(byte pin, String name, int count);
-  void set(bool action);
+  Relay(byte pin, String name, int defcount);
+  void set(bool action, int count);
   void setByCmd(String action);
   bool getStatus();
   String getDevice();
-  bool check(int update);
+  int getCount();
+  bool check();
 
 private:
-  int count;
   byte pin;
   String name;
+  int defcount;
+  int count;
   bool status;
   void setStatus(bool status);
 };
